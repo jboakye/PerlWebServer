@@ -4,8 +4,8 @@ use Socket;
 use POSIX ":sys_wait_h";
 use POSIX qw(mkfifo);
 
-no warnings qw( experimental::autoderef );
-no warnings 'experimental::smartmatch';
+#no warnings qw( experimental::autoderef );
+#no warnings 'experimental::smartmatch';
 
 $fifopath = "/tmp/IBWSFIFO";
 $SIG{USR1} = \&sigRequestDone;
