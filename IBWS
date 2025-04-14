@@ -348,7 +348,7 @@ sub checkPath
 		    if ( $ex eq 'exe')
 		    {
 				$path = `$path`;
-				$response = sendOk($path, "text/html");
+				$response = sendOk($path, "text/html", 1);
 		    }
 
 		    if(grep{/$ex/i} @ext)
@@ -405,6 +405,7 @@ sub sendOk
     #On a vérifier que le fichier existe avant de l'envoyer ici
     $path = $_[0];
     $mime = $_[1];
+    my $path_is_str = $_[2];
     #Ligne de statut : VERSION CODE PHRASE\r\n
     $response = "HTTP/1.1 200 \"OK\"\r\n";
     #En-tete de reponse :
@@ -413,12 +414,16 @@ sub sendOk
     $response .= "Content-Length:$taille\r\n";
     $response .= "\r\n";
     #Reponse :
-    open(HANDLE, '<', $path) or die "Open : $path  $!";
-    while(<HANDLE>)
-    {
-		$response .= $_;
-    }
-    close(HANDLE) or die "Close : $!";
+    if (not $path_is_str){
+	    open(HANDLE, '<', $path) or die "Open : $path  $!";
+	    while(<HANDLE>)
+	    {
+			$response .= $_;
+	    }
+	    close(HANDLE) or die "Close : $!";
+   }else{
+       $response .= $path;
+   }
     $response .= "\r\n";
     writeLog("get-s", $ipClient, "@get", "$path", "200");
 
