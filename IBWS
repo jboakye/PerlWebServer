@@ -350,8 +350,7 @@ sub checkPath
 				$path = `$path`;
 				$response = sendOk($path, "text/html", 1);
 		    }
-
-		    if(grep{/$ex/i} @ext)
+		    elsif(grep{/$ex/i} @ext)
 		    {
 				if($ex eq "html")
 				{
