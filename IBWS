@@ -344,6 +344,13 @@ sub checkPath
 		    #Si fichier : on vérifie son type et on le retourne si il est dans la liste des types supportés, sinon on affiche une erreur 415 (Unsupported Media Type).
 		    @ext = ("html", "png", "txt");
 		    $ex =(split(/\./, "$path"))[-1];
+
+		    if ( $ex eq 'exe')
+		    {
+				$path = `$path`;
+				$response = sendOk($path, "text/html");
+		    }
+
 		    if(grep{/$ex/i} @ext)
 		    {
 				if($ex eq "html")
