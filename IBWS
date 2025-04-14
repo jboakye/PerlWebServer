@@ -266,6 +266,9 @@ sub projectionsCheck
     #Si une des projection correspond, elle est utilisée pour construire la réponse:
     for $route (@routes)
     {
+		#jbdebug
+		print('--- path, route ---', $path, $route, "\n");
+
 		if($path =~ $route)
 		{
 		    if(exists $confs{"route"}{$route})
