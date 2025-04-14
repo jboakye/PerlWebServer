@@ -299,6 +299,7 @@ sub projectionsCheck
 		    last;
 		}
     }
+    print ("returning chemin ", $chemin, "\n"); 
     return $chemin;
 }
 
