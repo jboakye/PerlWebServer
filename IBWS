@@ -305,6 +305,10 @@ sub checkPath
 	my $response;
 
     $path = $_[0];
+
+    #jbdebug
+    print('---- path is ----',$path, "\n");
+   
     if (! -e $path)
     {
 		$response = sendError(404);
