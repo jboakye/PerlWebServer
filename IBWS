@@ -267,7 +267,7 @@ sub projectionsCheck
     for $route (@routes)
     {
 		#jbdebug
-		print('--- path, route ---', $path, $route, "\n");
+		print('--- path, route ---', $path, '---', $route, "\n");
 
 		if($path =~ $route)
 		{
