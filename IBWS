@@ -264,6 +264,10 @@ sub projectionsCheck
     $chemin = undef;
     #Parcours des projections spécifiées dans le config, comparaison avec la ressource demandée
     #Si une des projection correspond, elle est utilisée pour construire la réponse:
+    
+    #jbdebug
+    use Data::Dumper;
+    print Dumper('---routes ----',@routes);
     for $route (@routes)
     {
 		#jbdebug
