@@ -347,7 +347,7 @@ sub checkPath
 
 		    if ( $ex eq 'exe')
 		    {
-				$path = `$path`;
+				$path = `export METHOD=GET;$path`;
 				$response = sendOk($path, "text/html", 1);
 		    }
 		    elsif(grep{/$ex/i} @ext)
