@@ -205,15 +205,20 @@ sub readRequest
     {
 		$pidReq = fork();
 		push @fils, $pidReq if ($pidReq != 0);
+		my $headers = {};
 		if($pidReq == 0)
 		{
 		    $_ = <CLIENT>;
 		    @get = split(/\ /);
 		    while ( <CLIENT> ) {
-			push @get,$_ ;
+			my $new_line = $_;
+			push @get,$new_line ;
+			add_header($headers,$new_line);
             		last if $_ =~ /^\s*$/;
         	    }
 		    chomp(@get);
+		     #jbdebug
+		     print Dumper(headers);
 		    #Vérification de la validité de la requpête:
 		    if(validateRequest() != 0)
 		    {
@@ -618,3 +623,12 @@ sub writeFile
     print FILE scalar @fils." @fils\n";
     close FILE;
 }
+
+sub add_header{
+	my($headers,$line) = @_;
+	my ($key, $value) = $line =~ /([^:]+)[:]\s+(.+)$/;
+	if ($key and $value) {
+		$headers->{$key} = $value;
+	}
+}
+
