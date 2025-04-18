@@ -218,7 +218,7 @@ sub readRequest
         	    }
 		    chomp(@get);
 		     #jbdebug
-		     print Dumper('---headers----',headers);
+		     print Dumper('---headers----',$headers);
 		    #Vérification de la validité de la requpête:
 		    if(validateRequest() != 0)
 		    {
