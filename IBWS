@@ -226,6 +226,7 @@ sub readRequest
 			}
             		#last if $_ =~ /^\s*$/;
         	    }
+		    close CLIENT;
 		    $headers->{'method'} = $get[0];
                     my $body = '';
 		    if ('post' eq lc($headers->{'method'})){
