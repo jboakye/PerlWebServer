@@ -3,6 +3,7 @@
 use Socket;
 use POSIX ":sys_wait_h";
 use POSIX qw(mkfifo);
+use Data::Dumper;
 
 #no warnings qw( experimental::autoderef );
 #no warnings 'experimental::smartmatch';
@@ -238,6 +239,7 @@ sub readRequest
 #Check the request's validity
 sub validateRequest
 {
+    print Dumper('---raw---', @get);
     s/\r//g for @get;
     if((scalar @get != 3) || ($get[0] ne "GET") || ($get[2] ne "HTTP/1.1"))
     {
