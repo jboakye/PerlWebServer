@@ -209,7 +209,7 @@ sub readRequest
 		{
 		    $_ = <CLIENT>;
 		    @get = split(/\ /);
-		    chomp(@get);
+		    #chomp(@get);
 		    #Vérification de la validité de la requpête:
 		    if(validateRequest() != 0)
 		    {
