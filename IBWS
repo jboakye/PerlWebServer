@@ -214,7 +214,7 @@ sub readRequest
 		    my $body = '';
 		    while ( <CLIENT> ) {
 			my $new_line = $_;
-                        if "\r\n" eq $new_line{
+                        if ( "\r\n" eq $new_line){
                           $start_body = 1;
 			}
 			chomp $new_line;
