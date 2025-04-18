@@ -220,7 +220,7 @@ sub readRequest
 		    headers->{'method'} = $get[0];
                     my $body = '';
 		    if ('post' eq lc(headers->{'method'})){
-			recv(CLIENT, $body, $headers->{'content-length'});
+			recv(CLIENT, $body, $headers->{'content-length'},0);
 			print Dumper('---- body ----',$body);
 		     }
 		    chomp(@get);
