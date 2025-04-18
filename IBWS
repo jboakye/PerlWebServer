@@ -215,7 +215,7 @@ sub readRequest
 			chomp $new_line;
 			push @get,$new_line ;
 			add_header($headers,$new_line);
-            		last if $_ =~ /^\s*$/;
+            		#last if $_ =~ /^\s*$/;
         	    }
 		    $headers->{'method'} = $get[0];
                     my $body = '';
