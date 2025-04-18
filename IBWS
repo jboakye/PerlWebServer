@@ -210,18 +210,27 @@ sub readRequest
 		{
 		    $_ = <CLIENT>;
 		    @get = split(/\ /);
+                    my $start_body = 0;
+		    my $body = '';
 		    while ( <CLIENT> ) {
 			my $new_line = $_;
+                        if "\r\n" eq $new_line{
+                          $start_body = 1;
+			}
 			chomp $new_line;
 			push @get,$new_line ;
-			add_header($headers,$new_line);
+                        if ($start_body){
+				$body .= $new_line
+			}else{
+				add_header($headers,$new_line);
+			}
             		#last if $_ =~ /^\s*$/;
         	    }
 		    $headers->{'method'} = $get[0];
                     my $body = '';
 		    if ('post' eq lc($headers->{'method'})){
 			my $content_length =$headers->{'content-length'} + 0; 
-			recv(CLIENT, $body, $content_length,0);
+			#recv(CLIENT, $body, $content_length,0);
 			print Dumper('---- body ----',$body, '---- cl ---', $content_length);
 		     }
 		    chomp(@get);
