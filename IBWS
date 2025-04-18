@@ -245,19 +245,12 @@ sub validateRequest
 {
     print Dumper('---raw---', @get);
     s/\r//g for @get;
-    if((scalar @get != 3) || ($get[0] ne "GET") || ($get[2] ne "HTTP/1.1"))
+    #if((scalar @get != 3) || ($get[0] ne "GET") || ($get[2] ne "HTTP/1.1"))
+    if($get[2] ne "HTTP/1.1")
     {
-		if(scalar @get != 3)
-		{
-		    print CLIENT sendError(400);
-		}
-		elsif($get[2] ne "HTTP/1.1")
+	    if($get[2] ne "HTTP/1.1")
 		{
 		    print CLIENT sendError(505);
-		}
-		elsif($get[0] ne "GET")
-		{
-		    print CLIENT sendError(405);
 		}
 		return 0;
     }
