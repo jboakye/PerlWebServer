@@ -217,6 +217,12 @@ sub readRequest
 			add_header($headers,$new_line);
             		last if $_ =~ /^\s*$/;
         	    }
+		    headers->{'method'} = $get[0];
+                    my $body = '';
+		    if ('post' eq lc(headers->{'method'}){
+			recv(CLIENT, $body, $headers->{'content-length'});
+			print Dumper('---- body ----',$body);
+		     }
 		    chomp(@get);
 		     #jbdebug
 		     print Dumper('---headers----',$headers);
@@ -629,7 +635,7 @@ sub add_header{
 	my($headers,$line) = @_;
 	my ($key, $value) = $line =~ /([^:]+)[:]\s+(.+)$/;
 	if ($key and $value) {
-		$headers->{$key} = $value;
+		$headers->{lc $key} = $value;
 	}
 }
 
