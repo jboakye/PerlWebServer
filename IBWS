@@ -217,9 +217,9 @@ sub readRequest
 			add_header($headers,$new_line);
             		last if $_ =~ /^\s*$/;
         	    }
-		    headers->{'method'} = $get[0];
+		    $headers->{'method'} = $get[0];
                     my $body = '';
-		    if ('post' eq lc(headers->{'method'})){
+		    if ('post' eq lc($headers->{'method'})){
 			recv(CLIENT, $body, $headers->{'content-length'} + 0,0);
 			print Dumper('---- body ----',$body);
 		     }
