@@ -211,7 +211,7 @@ sub readRequest
 		    $_ = <CLIENT>;
 		    @get = split(/\ /);
 		    while ( <CLIENT> ) {
-			my $new_line = $_;
+			my $new_line = chomp($_);
 			push @get,$new_line ;
 			add_header($headers,$new_line);
             		last if $_ =~ /^\s*$/;
