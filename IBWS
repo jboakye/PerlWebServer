@@ -209,7 +209,11 @@ sub readRequest
 		{
 		    $_ = <CLIENT>;
 		    @get = split(/\ /);
-		    #chomp(@get);
+		    while ( <CLIENT> ) {
+			push @get,$_ ;
+            		last if $_ =~ /^\s*$/;
+        	    }
+		    chomp(@get);
 		    #Vérification de la validité de la requpête:
 		    if(validateRequest() != 0)
 		    {
