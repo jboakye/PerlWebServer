@@ -214,10 +214,13 @@ sub readRequest
 		    my $body = '';
 		    while ( <CLIENT> ) {
 			my $new_line = $_;
-                        if ( "\r" eq $new_line){
+                        if ($start_body < 2){
+				$new_line =~ s/[\r]|[\n]//g;
+			}
+                        if ( 0 ==  strlen($new_line)){
                           $start_body += 1;
 			}
-			chomp $new_line;
+			#chomp $new_line;
 			push @get,$new_line ;
                         if ($start_body >= 2){
 				$body .= $new_line
@@ -233,7 +236,7 @@ sub readRequest
 			#recv(CLIENT, $body, $content_length,0);
 			print Dumper('---- body ----',$body, '---- cl ---', $content_length);
 		     }
-		    chomp(@get);
+		    #chomp(@get);
 		     #jbdebug
 		     print Dumper('---headers----',$headers);
 		    #Vérification de la validité de la requpête:
