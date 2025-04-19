@@ -256,7 +256,7 @@ sub readRequest
 				    print CLIENT checkPath($chemin);
 				}
 		    }
-		    shutdown(CLIENT,SHUT_RDWR);
+		    #shutdown(CLIENT,SHUT_RDWR);
 		    #TODO : Faire fonctionner les signaux
 		    #print "mainPid : $mainPid\n\n";
 		    #kill(USR1,$mainPid);   
