@@ -645,7 +645,8 @@ sub add_header{
 	my($headers,$line) = @_;
 	my ($key, $value) = $line =~ /([^:]+)[:]\s+(.+)$/;
 	if ($key and $value) {
-		$headers->{lc $key} = $value . 'VVVVVVV';
+		$value =~ s/\r\n/NNLL/g;
+		$headers->{lc $key} = $value;
 	}
 }
 
