@@ -473,6 +473,8 @@ sub sendError
     {
 		#Requête 404:
 		#Pour le fichier final :
+		#jbdebug
+		print Dumper('---- doing error 404 ---------');
 		if($confs{"route"}{"error"} != undef)
 		{
 		    $errorPage = $confs{"route"}{"error"};
