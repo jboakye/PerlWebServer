@@ -217,7 +217,7 @@ sub readRequest
                         if ($start_body < 2){
 				$new_line =~ s/[\r]|[\n]//g;
 			}
-                        if ( 0 ==  strlen($new_line)){
+                        if ( 0 ==  length($new_line)){
                           $start_body += 1;
 			}
 			#chomp $new_line;
