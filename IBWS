@@ -208,12 +208,14 @@ sub readRequest
 		my $headers = {};
 		if($pidReq == 0)
 		{
-		    $_ = <CLIENT>;
-		    @get = split(/\ /);
+		    my $new_line = <CLIENT>;
+		    @get = map {
+			$_  =~ s/[\r]|[\n]//g;	
+		    }split(/\ /);
                     my $start_body = 0;
 		    my $body = '';
 		    while ( <CLIENT> ) {
-			my $new_line = $_;
+			$new_line = $_;
                         if ($start_body < 2){
 				$new_line =~ s/[\r]|[\n]//g;
 			}
@@ -269,7 +271,7 @@ sub readRequest
 sub validateRequest
 {
     print Dumper('---raw---', @get);
-    s/\r//g for @get;
+    #s/\r//g for @get;
     #if((scalar @get != 3) || ($get[0] ne "GET") || ($get[2] ne "HTTP/1.1"))
     if($get[2] ne "HTTP/1.1")
     {
