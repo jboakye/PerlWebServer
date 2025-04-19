@@ -214,12 +214,12 @@ sub readRequest
 		    my $body = '';
 		    while ( <CLIENT> ) {
 			my $new_line = $_;
-                        if ( "\r\n" eq $new_line){
-                          $start_body = 1;
+                        if ( "\r" eq $new_line){
+                          $start_body += 1;
 			}
 			chomp $new_line;
 			push @get,$new_line ;
-                        if ($start_body){
+                        if ($start_body >= 2){
 				$body .= $new_line
 			}else{
 				add_header($headers,$new_line);
