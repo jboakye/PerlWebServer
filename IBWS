@@ -226,7 +226,6 @@ sub readRequest
 			}
             		#last if $_ =~ /^\s*$/;
         	    }
-		    close CLIENT;
 		    $headers->{'method'} = $get[0];
                     my $body = '';
 		    if ('post' eq lc($headers->{'method'})){
@@ -254,7 +253,7 @@ sub readRequest
 				    print CLIENT checkPath($chemin);
 				}
 		    }
-		    shutdown(CLIENT);
+		    shutdown(CLIENT,SHUT_RDWR);
 		    #TODO : Faire fonctionner les signaux
 		    #print "mainPid : $mainPid\n\n";
 		    #kill(USR1,$mainPid);   
