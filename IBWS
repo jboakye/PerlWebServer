@@ -424,6 +424,8 @@ sub listElements
 #Send the correct response, with the correct mime type.
 sub sendOk
 {
+    #jbdebug
+    print Dumper('--sendOK called---',@_);
 	my $response;
 
     #On a vérifier que le fichier existe avant de l'envoyer ici
