@@ -397,7 +397,7 @@ sub checkPath
 		    }
 		}
     }
-
+    print Dumper('---returning----', $response);
     return $response;
 }
 
@@ -657,4 +657,3 @@ sub add_header{
 		$headers->{lc $key} = $value;
 	}
 }
-
