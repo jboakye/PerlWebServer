@@ -255,6 +255,7 @@ sub readRequest
 				else
 				{
 				    print CLIENT checkPath($chemin);
+				    print "-----------sent response -----\n";
 				}
 		    }
 		    #shutdown(CLIENT,SHUT_RDWR);
