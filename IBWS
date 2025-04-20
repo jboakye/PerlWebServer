@@ -249,7 +249,9 @@ sub readRequest{
 				}
 				else
 				{
-				    my $err = send (CLIENT, checkPath($chemin));
+					my $to_send = checkPath($chemin);
+					print Dumper('---- to send ----', $to_send);
+				    my $err = send (CLIENT, $to_send, length($to_send),0);
 				    print "-----------sent response -----, $err\n";
 				}
 		    }
