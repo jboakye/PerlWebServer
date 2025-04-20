@@ -209,9 +209,8 @@ sub readRequest
 		if($pidReq == 0)
 		{
 		    my $new_line = <CLIENT>;
-		    @get = map {
-			$_  =~ s/[\r]|[\n]//g;	
-		    }split(/[ ]/,$new_line);
+		   $new_line =~ s/[\r]|[\n]//g;
+		    @get = split(/[ ]/,$new_line);
                     my $start_body = 0;
 		    my $body = '';
 		    while ( <CLIENT> ) {
