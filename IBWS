@@ -216,7 +216,7 @@ sub readRequest
 		    my $body = '';
 		    while ( <CLIENT> ) {
 			$new_line = $_;
-                        if ($start_body < 2){
+                        if ($start_body < 1){
 				$new_line =~ s/[\r]|[\n]//g;
 			}
                         if ( 0 ==  length($new_line)){
@@ -224,7 +224,7 @@ sub readRequest
 			}
 			#chomp $new_line;
 			push @get,$new_line ;
-                        if ($start_body >= 2){
+                        if ($start_body >= 1){
 				$body .= $new_line
 			}else{
 				add_header($headers,$new_line);
