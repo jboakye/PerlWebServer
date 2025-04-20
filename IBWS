@@ -185,8 +185,7 @@ sub configLoad
     }
 }
 
-sub readRequest
-{
+sub readRequest{
     #Requete
     listen(SERVER, SOMAXCONN) or die "Listen : $!";
     $addrinfo = accept(CLIENT, SERVER);
@@ -195,51 +194,47 @@ sub readRequest
 
     $requetesR++;
 
-    if(scalar @fils > $confs{"set"}{"clients"})
-    {
+    if(scalar @fils > $confs{"set"}{"clients"}){
 		print CLIENT sendError(503);
 		sigRequestDone();
 		close CLIENT;
     }
-    else
-    {
+    else{
 		$pidReq = fork();
 		push @fils, $pidReq if ($pidReq != 0);
 		my $headers = {};
-		if($pidReq == 0)
-		{
+		if($pidReq == 0){
 		    my $new_line = <CLIENT>;
-		   $new_line =~ s/[\r]|[\n]//g;
+		    $new_line =~ s/[\r]|[\n]//g;
 		    @get = split(/[ ]/,$new_line);
-                    my $start_body = 0;
+		    my $start_body = 0;
 		    my $body = '';
-		    while ( <CLIENT> ) {
-			$new_line = $_;
-                        if ($start_body < 1){
-				$new_line =~ s/[\r]|[\n]//g;
+		    while ( $new_line = <CLIENT> ) {
+		    	if ($start_body < 1){
+		    		$new_line =~ s/[\r]|[\n]//g;
+		    	}
+		    	if ( 0 ==  length($new_line)){
+		    		$start_body += 1;
+				}
+				#chomp $new_line;
+				push @get,$new_line ;
+				if ($start_body >= 1){
+					$body .= $new_line
+				}else{
+					add_header($headers,$new_line);
+				}
+				#last if $_ =~ /^\s*$/;
 			}
-                        if ( 0 ==  length($new_line)){
-                          $start_body += 1;
-			}
-			#chomp $new_line;
-			push @get,$new_line ;
-                        if ($start_body >= 1){
-				$body .= $new_line
-			}else{
-				add_header($headers,$new_line);
-			}
-            		#last if $_ =~ /^\s*$/;
-        	    }
 		    $headers->{'method'} = $get[0];
-                    my $body = '';
+		    $headers->{'uri'} = $get[1];
 		    if ('post' eq lc($headers->{'method'})){
-			my $content_length =$headers->{'content-length'} + 0; 
-			#recv(CLIENT, $body, $content_length,0);
-			print Dumper('---- body ----',$body, '---- cl ---', $content_length);
-		     }
+				my $content_length =$headers->{'content-length'} + 0; 
+				#recv(CLIENT, $body, $content_length,0);
+				print Dumper('---- body ----',$body, '---- cl ---', $content_length);
+		    }
 		    #chomp(@get);
-		     #jbdebug
-		     print Dumper('---headers----',$headers);
+		    #jbdebug
+		    print Dumper('---headers----',$headers);
 		    #Vérification de la validité de la requpête:
 		    if(validateRequest() != 0)
 		    {
@@ -254,7 +249,7 @@ sub readRequest
 				}
 				else
 				{
-				    my $err = print CLIENT checkPath($chemin);
+				    my $err = send (CLIENT, checkPath($chemin));
 				    print "-----------sent response -----, $err\n";
 				}
 		    }
