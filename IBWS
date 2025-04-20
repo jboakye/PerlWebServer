@@ -227,6 +227,7 @@ sub readRequest{
 			}
 		    $headers->{'method'} = $get[0];
 		    $headers->{'uri'} = $get[1];
+            $headers->{'http-version'} = $get[2];
 		    if ('post' eq lc($headers->{'method'})){
 				my $content_length =$headers->{'content-length'} + 0; 
 				#recv(CLIENT, $body, $content_length,0);
@@ -268,6 +269,8 @@ sub readRequest{
 sub validateRequest
 {
     print Dumper('---raw---', @get);
+    #jbdebug
+    return 1;
     #s/\r//g for @get;
     #if((scalar @get != 3) || ($get[0] ne "GET") || ($get[2] ne "HTTP/1.1"))
     if($get[2] ne "HTTP/1.1")
