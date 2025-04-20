@@ -435,9 +435,10 @@ sub sendOk
     #Ligne de statut : VERSION CODE PHRASE\r\n
     $response = "HTTP/1.1 200 \"OK\"\r\n";
     #En-tete de reponse :
-    $response .= "Content-type:$mime\r\n";
+    $response .= "Content-type: $mime\r\n";
     $taille = -s $path;
-    $response .= "Content-Length:$taille\r\n";
+    $response .= "Content-Length: $taille\r\n";
+    $response .= "Connection: close\r\n";
     $response .= "\r\n";
     #Reponse :
     if (not $path_is_str){
@@ -450,7 +451,7 @@ sub sendOk
    }else{
        $response .= $path;
    }
-    $response .= "\r\n";
+    #$response .= "\r\n";
     writeLog("get-s", $ipClient, "@get", "$path", "200");
 
     return $response;
