@@ -254,8 +254,8 @@ sub readRequest
 				}
 				else
 				{
-				    print CLIENT checkPath($chemin);
-				    print "-----------sent response -----\n";
+				    my $err = print CLIENT checkPath($chemin);
+				    print "-----------sent response -----, $err\n";
 				}
 		    }
 		    #shutdown(CLIENT,SHUT_RDWR);
