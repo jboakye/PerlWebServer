@@ -3,9 +3,10 @@
 use Socket;
 use POSIX ":sys_wait_h";
 use POSIX qw(mkfifo);
+use Data::Dumper;
 
-no warnings qw( experimental::autoderef );
-no warnings 'experimental::smartmatch';
+#no warnings qw( experimental::autoderef );
+#no warnings 'experimental::smartmatch';
 
 $fifopath = "/tmp/IBWSFIFO";
 $SIG{USR1} = \&sigRequestDone;
@@ -184,8 +185,7 @@ sub configLoad
     }
 }
 
-sub readRequest
-{
+sub readRequest{
     #Requete
     listen(SERVER, SOMAXCONN) or die "Listen : $!";
     $addrinfo = accept(CLIENT, SERVER);
@@ -194,21 +194,48 @@ sub readRequest
 
     $requetesR++;
 
-    if(scalar @fils > $confs{"set"}{"clients"})
-    {
+    if(scalar @fils > $confs{"set"}{"clients"}){
 		print CLIENT sendError(503);
 		sigRequestDone();
 		close CLIENT;
     }
-    else
-    {
+    else{
 		$pidReq = fork();
 		push @fils, $pidReq if ($pidReq != 0);
-		if($pidReq == 0)
-		{
-		    $_ = <CLIENT>;
-		    @get = split(/\ /);
-		    chomp(@get);
+		my $headers = {};
+		if($pidReq == 0){
+		    my $new_line = <CLIENT>;
+		    $new_line =~ s/[\r]|[\n]//g;
+		    @get = split(/[ ]/,$new_line);
+		    my $start_body = 0;
+		    my $body = '';
+		    while ( $new_line = <CLIENT> ) {
+		    	if ($start_body < 1){
+		    		$new_line =~ s/[\r]|[\n]//g;
+		    	}
+		    	if ( 0 ==  length($new_line)){
+		    		$start_body += 1;
+				}
+				#chomp $new_line;
+				push @get,$new_line ;
+				if ($start_body >= 1){
+					$body .= $new_line
+				}else{
+					add_header($headers,$new_line);
+				}
+				#last if $_ =~ /^\s*$/;
+			}
+		    $headers->{'method'} = $get[0];
+		    $headers->{'uri'} = $get[1];
+            $headers->{'http-version'} = $get[2];
+		    if ('post' eq lc($headers->{'method'})){
+				my $content_length =$headers->{'content-length'} + 0; 
+				#recv(CLIENT, $body, $content_length,0);
+				print Dumper('---- body ----',$body, '---- cl ---', $content_length);
+		    }
+		    #chomp(@get);
+		    #jbdebug
+		    print Dumper('---headers----',$headers);
 		    #Vérification de la validité de la requpête:
 		    if(validateRequest() != 0)
 		    {
@@ -223,10 +250,13 @@ sub readRequest
 				}
 				else
 				{
-				    print CLIENT checkPath($chemin);
+					my $to_send = checkPath($chemin);
+					print Dumper('---- to send ----', $to_send);
+				    my $err = send (CLIENT, $to_send, length($to_send),0);
+				    print "-----------sent response -----, $err\n";
 				}
 		    }
-		    close CLIENT;
+		    #shutdown(CLIENT,SHUT_RDWR);
 		    #TODO : Faire fonctionner les signaux
 		    #print "mainPid : $mainPid\n\n";
 		    #kill(USR1,$mainPid);   
@@ -238,20 +268,16 @@ sub readRequest
 #Check the request's validity
 sub validateRequest
 {
-    s/\r//g for @get;
-    if((scalar @get != 3) || ($get[0] ne "GET") || ($get[2] ne "HTTP/1.1"))
+    print Dumper('---raw---', @get);
+    #jbdebug
+    return 1;
+    #s/\r//g for @get;
+    #if((scalar @get != 3) || ($get[0] ne "GET") || ($get[2] ne "HTTP/1.1"))
+    if($get[2] ne "HTTP/1.1")
     {
-		if(scalar @get != 3)
-		{
-		    print CLIENT sendError(400);
-		}
-		elsif($get[2] ne "HTTP/1.1")
+	    if($get[2] ne "HTTP/1.1")
 		{
 		    print CLIENT sendError(505);
-		}
-		elsif($get[0] ne "GET")
-		{
-		    print CLIENT sendError(405);
 		}
 		return 0;
     }
@@ -264,8 +290,15 @@ sub projectionsCheck
     $chemin = undef;
     #Parcours des projections spécifiées dans le config, comparaison avec la ressource demandée
     #Si une des projection correspond, elle est utilisée pour construire la réponse:
+    
+    #jbdebug
+    use Data::Dumper;
+    print Dumper('---routes ----',@routes);
     for $route (@routes)
     {
+		#jbdebug
+		print('--- path, route ---', $path, '---', $route, "\n");
+
 		if($path =~ $route)
 		{
 		    if(exists $confs{"route"}{$route})
@@ -296,6 +329,7 @@ sub projectionsCheck
 		    last;
 		}
     }
+    print ("returning chemin ", $chemin, "\n"); 
     return $chemin;
 }
 
@@ -305,6 +339,10 @@ sub checkPath
 	my $response;
 
     $path = $_[0];
+
+    #jbdebug
+    print('---- path is ----',$path, "\n");
+   
     if (! -e $path)
     {
 		$response = sendError(404);
@@ -332,7 +370,13 @@ sub checkPath
 		    #Si fichier : on vérifie son type et on le retourne si il est dans la liste des types supportés, sinon on affiche une erreur 415 (Unsupported Media Type).
 		    @ext = ("html", "png", "txt");
 		    $ex =(split(/\./, "$path"))[-1];
-		    if($ex ~~ @ext)
+
+		    if ( $ex eq 'exe')
+		    {
+				$path = `export METHOD=GET;$path`;
+				$response = sendOk($path, "text/html", 1);
+		    }
+		    elsif(grep{/$ex/i} @ext)
 		    {
 				if($ex eq "html")
 				{
@@ -354,7 +398,7 @@ sub checkPath
 		    }
 		}
     }
-
+    print Dumper('---returning----', $response);
     return $response;
 }
 
@@ -381,26 +425,34 @@ sub listElements
 #Send the correct response, with the correct mime type.
 sub sendOk
 {
+    #jbdebug
+    print Dumper('--sendOK called---',@_);
 	my $response;
 
     #On a vérifier que le fichier existe avant de l'envoyer ici
     $path = $_[0];
     $mime = $_[1];
+    my $path_is_str = $_[2];
     #Ligne de statut : VERSION CODE PHRASE\r\n
     $response = "HTTP/1.1 200 \"OK\"\r\n";
     #En-tete de reponse :
-    $response .= "Content-type:$mime\r\n";
+    $response .= "Content-type: $mime\r\n";
     $taille = -s $path;
-    $response .= "Content-Length:$taille\r\n";
+    $response .= "Content-Length: $taille\r\n";
+    $response .= "Connection: close\r\n";
     $response .= "\r\n";
     #Reponse :
-    open(HANDLE, '<', $path) or die "Open : $path  $!";
-    while(<HANDLE>)
-    {
-		$response .= $_;
-    }
-    close(HANDLE) or die "Close : $!";
-    $response .= "\r\n";
+    if (not $path_is_str){
+	    open(HANDLE, '<', $path) or die "Open : $path  $!";
+	    while(<HANDLE>)
+	    {
+			$response .= $_;
+	    }
+	    close(HANDLE) or die "Close : $!";
+   }else{
+       $response .= $path;
+   }
+    #$response .= "\r\n";
     writeLog("get-s", $ipClient, "@get", "$path", "200");
 
     return $response;
@@ -429,6 +481,8 @@ sub sendError
     {
 		#Requête 404:
 		#Pour le fichier final :
+		#jbdebug
+		print Dumper('---- doing error 404 ---------');
 		if($confs{"route"}{"error"} != undef)
 		{
 		    $errorPage = $confs{"route"}{"error"};
@@ -595,4 +649,13 @@ sub writeFile
     print FILE $requetesT."/".$requetesR."\n";
     print FILE scalar @fils." @fils\n";
     close FILE;
+}
+
+sub add_header{
+	my($headers,$line) = @_;
+	my ($key, $value) = $line =~ /([^:]+)[:]\s+(.+)$/;
+	if ($key and $value) {
+		$value =~ s/\r\n/NNLL/g;
+		$headers->{lc $key} = $value;
+	}
 }
