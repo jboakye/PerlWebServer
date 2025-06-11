@@ -24,6 +24,65 @@ my @fils  = ();
 my $requetesR = 0;
 my $requetesT = 0;
 my $mainPid;
+my $route_service = {
+	"/" => 
+	sub{
+	    my ($pathinfo, $confs) = @_;
+	    my $path;
+	
+	    #jbdebug
+	    print Dumper ('---- inside service / pathinfo  is ----',$pathinfo, "\n");
+	    
+	    #we have a file
+	    if ($pathinfo->{'filename'}){
+	    	$path = $pathinfo->{'filename'};
+	    	if ($pathinfo->{'dir'}){
+	    		$path = sprintf("%s/%s",$pathinfo->{'dir'},$path);
+	    	}
+	    }else{
+	    	print Dumper('uri is', $pathinfo->{'_uri'});
+	    	return sendOk($pathinfo->{'_uri'}); 
+	    }
+		my $is_text = $pathinfo->{'is_text'};
+		my $mime = $pathinfo->{'mime'};
+		#jbdebug
+		print Dumper("using path $path .... $mime");
+	    #static html file
+	    if (-e $path and $is_text and $mime){
+			return  sendOk($path, $mime);
+	    }
+	},
+	"static" => 
+	sub{
+	    my ($pathinfo, $confs) = @_;
+	    my $path;
+	
+	    #jbdebug
+	    print Dumper ('---- pathinfo  is ----',$pathinfo, "\n");
+	    
+	    #we have a file
+	    if ($pathinfo->{'filename'}){
+	    	$path = $pathinfo->{'filename'};
+	    	if ($pathinfo->{'dir'}){
+	    		$path = sprintf("%s/%s",$pathinfo->{'dir'},$path);
+	    	}
+	    }else{
+	    	print Dumper('uri is', $pathinfo->{'_uri'});
+	    	#return sendOk($pathinfo->{'_uri'}); 
+	    }
+		my $is_text = $pathinfo->{'is_text'};
+		my $mime = $pathinfo->{'mime'};
+		#jbdebug
+		print Dumper("using path $path .... $mime");
+	    #static html file
+	    if (-e $path and $is_text and $mime){
+			return  sendOk($path, $mime);
+	    }
+	}
+};
+
+
+
 
 checkParameter();
 
@@ -133,6 +192,9 @@ sub startServer{
         exit 0;
     }
 }
+
+
+
 
 #Initialize the confs.
 sub order{
@@ -391,7 +453,7 @@ sub projectionsCheck{
 		my $path_key;
 		if ($2){
 			$path_key = $2;
-			print Dumper('---- path key----', $path_key);
+			print Dumper('---- path key----, route key ', $path_key, $route_key);
 		}elsif ($1){
 			$path_key = $1;
 		}
@@ -408,37 +470,10 @@ sub projectionsCheck{
 		
         if($path_key =~ /$route_key/){
         	$chemin = $route;
+        	$chemin->{'the_key'} = $route_key;
         	$chemin->{'_uri'} = $uri;
         	$chemin->{'_query_string'} = $query_string;
         	print Dumper('----route key path----',$route_key,$path,$chemin);
-        	last;
-        	my $routeExec;
-            if(exists $confs->{"route"}{$route})
-            {
-                $routeExec = "route";
-            }
-            elsif(exists $confs->{"exec"}{$route})
-            {
-                $routeExec = "exec";
-            }
-            else
-            {
-                next;
-            }
-            $chemin = $confs->{$routeExec}{$route};
-            $chemin =~ s!\/+!\/!g;
-
-            my $routeTmp = qr/$route/;
-            $_ = $path;
-
-            my @matches = m/$routeTmp/;
-
-            for my $m (@matches) {
-                #my $m = $matches[$i++];
-                #TODO$chemin =~ s{\\$i}{$m};
-            }
-            m/$chemin/;
-            last;
         }
     }
     print Dumper("returning chemin ", $chemin, "\n");
@@ -448,89 +483,18 @@ sub projectionsCheck{
 #Check the path, redirect it depending on his nature.
 sub checkPath
 {
-    my $response;
-
-    my ($pathinfo, $confs) = @_;
-    my $path;
-
-    #jbdebug
-    print Dumper ('---- pathinfo  is ----',$pathinfo, "\n");
-    
-    #we have a file
-    if ($pathinfo->{'filename'}){
-    	$path = $pathinfo->{'filename'};
-    	if ($pathinfo->{'dir'}){
-    		$path = sprintf("%s/%s",$pathinfo->{'dir'},$path);
-    	}
-    }
-	my $is_text = $pathinfo->{'is_text'};
-	my $mime = $pathinfo->{'mime'};
 	#jbdebug
-	print Dumper("using path $path .... $mime");
-    #static html file
-    if (-e $path and $is_text and $mime){
-		return  ($response = sendOk($path, $mime));
+	print Dumper ('--- checkpath called -----', @_, $route_service);
+    my $response;
+    my ($pathinfo, $confs) = @_;
+    my $service = $route_service->{$pathinfo->{'the_key'}};
+    #jbdebug
+    print Dumper('----- service -----', $service);
+    if ($service){
+	    #jbdebug
+		print Dumper('---- service found ----');    	
+    	return &$service($pathinfo,$confs)
     }
-
-	#error: xyz ...
-    if (! -e $path)
-    {
-        return ($response = sendError(404));
-    }
-    else
-    {
-        #Si dossier :
-        if( -d $path)
-        {
-            #On retourne le fichier "index" si il existe
-            if ( -e "$path"."$confs->{\"set\"}{index}")
-            {
-                $path = "$path"."$confs->{\"set\"}{index}";
-                $response = sendOk($path, "text/html");
-            }
-            else
-            {
-                #On retourne le contenu du dossier sinon
-                $path = listElements($path);
-                $response = sendOk($path, "text/html");
-            }
-        }
-        else
-        {
-            #Si fichier : on vérifie son type et on le retourne si il est dans la liste des types supportés, sinon on affiche une erreur 415 (Unsupported Media Type).
-            my @ext = ("html", "png", "txt");
-            my $ex =(split(/\./, "$path"))[-1];
-
-            if ( $ex eq 'exe')
-            {
-                $path = `export METHOD=GET;$path`;
-                $response = sendOk($path, "text/html", 1);
-            }
-            elsif(grep{/$ex/i} @ext)
-            {
-                my $mime;
-                if($ex eq "html")
-                {
-                    $mime = "text/html";
-                }
-                elsif($ex eq "png")
-                {
-                    $mime = "image/png";
-                }
-                elsif($ex eq "txt")
-                {
-                    $mime = "text/plain";
-                }
-                $response = sendOk($path, $mime);
-            }
-            else
-            {
-            $response = sendError(415);
-            }
-        }
-    }
-    print Dumper('---returning----', $response);
-    return $response;
 }
 
 #Create a simple HTML page listing all the elements of the given directory.
@@ -585,6 +549,8 @@ sub sendOk
     #$response .= "\r\n";
     writeLog("get-s", $ipClient, "\@get", "$path", "200");
 
+	#jbdebug
+	print Dumper('---------------',$response, '------------');
     return $response;
 }
 
@@ -801,3 +767,5 @@ sub add_headers{
         }
     }
 }
+
+
