@@ -8,5 +8,8 @@
 		{"the_key": "cgi","dir": "/d/http/cgi",  "is_script": 1, "mime": "text/html"},
 		{"the_key": "static", "dir": "/d/http/html", "is_text": 1, "mime": "text/html" },
 		{"the_key": "/", "dir": "/d/http/html", "is_text": 1 , "filename": "test.html", "mime": "text/html"}
-	]
+	],
+	"exec_map":{
+		"london": "/d/http/cgi/hello_world.cgi"
+	}
 }	

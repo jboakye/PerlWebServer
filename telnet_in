@@ -1,4 +1,4 @@
-GET / HTTP/1.1
+GET /cgi/london?a=b&c=d HTTP/1.1
 Host: developer.mozilla.org
 Accept-Language: fr
 

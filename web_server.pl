@@ -8,11 +8,20 @@ use JSON;
 use IO::Socket;
 use IO::Socket::INET;
 use File::Slurp;
+use DBI;
+use DBD::SQLite;
 use Data::Dumper;
 
 #no warnings qw( experimental::autoderef );
 #no warnings 'experimental::smartmatch';
 
+use DBD::SQLite::Constants ':dbd_sqlite_string_mode';
+my $unicode_opt = DBD_SQLITE_STRING_MODE_UNICODE_STRICT;
+my $db_file = "/dev/shm/web_server_db";
+my $dbh = DBI->connect( "dbi:SQLite:dbname=$db_file;sqlite_string_mode=$unicode_opt", '', '' );
+
+
+my $run_id = genUUID();
 my $CONFIG_FILE = "./config.conf.json";
 my $logFile = "";
 my $fifopath = "/tmp/IBWSFIFO";
@@ -24,6 +33,7 @@ my @fils  = ();
 my $requetesR = 0;
 my $requetesT = 0;
 my $mainPid;
+print "using run id $run_id \n";
 my $route_service = {
 	"/" => 
 	sub{
@@ -68,6 +78,10 @@ my $route_service = {
 	    	}
 	    }else{
 	    	print Dumper('uri is', $pathinfo->{'_uri'});
+	    	$path = $pathinfo->{'_given_file'};
+	    	if ($path and $pathinfo->{'dir'}){
+	    		$path = sprintf("%s/%s",$pathinfo->{'dir'},$path);
+	    	}
 	    	#return sendOk($pathinfo->{'_uri'}); 
 	    }
 		my $is_text = $pathinfo->{'is_text'};
@@ -77,6 +91,43 @@ my $route_service = {
 	    #static html file
 	    if (-e $path and $is_text and $mime){
 			return  sendOk($path, $mime);
+	    }
+	},
+	"cgi" => 
+	sub{
+	    my ($pathinfo, $confs) = @_;
+	    my $path;
+	
+	    #jbdebug
+	    #TODO: sanitize everything
+	    print Dumper ('---- pathinfo  is ----',$pathinfo, "\n");
+	    my $given_file = $pathinfo->{'_given_file'};
+	    if (!$given_file){
+	    	return "Error" #TODO
+	    }
+	    print Dumper ('---- given file  is ----',$given_file, "\n");
+		my $actual_file = $confs->{'exec_map'}->{$given_file};
+	    print Dumper ('---- actual file  is ----',$actual_file, "\n");
+		my $query_string = $pathinfo->{'_query_string'} // '';
+		my $content_string = $pathinfo->{'_content_x'} // '';
+		#jbdebug
+		print Dumper("qs cs rid", $run_id, $query_string, $content_string);
+
+		my $sth = $dbh->prepare("INSERT INTO query_string(run_id,query_string) VALUES (?, ?)", 
+			{ go_last_insert_id_args => [undef, undef, undef, undef]
+		});
+		my $rows = $sth->execute($run_id,$query_string);
+		
+		$sth = $dbh->prepare("INSERT INTO content(run_id,content) VALUES (?, ?)", 
+			{ go_last_insert_id_args => [undef, undef, undef, undef]
+		});
+		$rows = $sth->execute($run_id,$content_string);
+		
+		print Dumper('----  running ', $actual_file, $run_id);
+	   	my $to_send = `$actual_file $run_id`;
+		my $mime = $pathinfo->{'mime'};
+	    if ($to_send  and $mime){
+			return  sendOk($to_send, $mime, 1);
 	    }
 	}
 };
@@ -360,6 +411,7 @@ sub readRequest{
                     add_headers($headers,\@received );
                     last;
                 }
+                #TODO: verify content-length
                 #fail safe
                 if ($loop_counter > $max_loops){
                     print ("too many trips to client \n");
@@ -379,7 +431,8 @@ sub readRequest{
                 if($to_receive > 0){
                 	my $rslt = $client->recv($chunk,$to_receive);
                 }
-            	$headers->{'_content'} =  $left_from_previous_chunk . $chunk;
+                $headers->{'_content_x'}  //= '';
+            	$headers->{'_content_x'} .=  $left_from_previous_chunk . $chunk;
             }
             print Dumper('----- received -----', @received);
             print Dumper('----- headers -----', $headers);
@@ -449,13 +502,19 @@ sub projectionsCheck{
         print Dumper ('--- path, route ---', $path,  $route, "\n");
 		#jbdebug
 		my $route_key = $route->{'the_key'};
-		$path =~ qw{^([/])(.*)([/]*)} ;
+		my $given_file;
+		if($path =~ qw{^([/])([^/]*)([/]*)([^/?]*)([?]*)([^?]*)$}){
+			print Dumper('---match---',$1,$2,$3,$4,$5,$6);
+		}
 		my $path_key;
 		if ($2){
 			$path_key = $2;
 			print Dumper('---- path key----, route key ', $path_key, $route_key);
 		}elsif ($1){
 			$path_key = $1;
+		}
+		if ($4){
+			$given_file = $4;
 		}
 		#uri, query string
 		my $uri;
@@ -470,9 +529,11 @@ sub projectionsCheck{
 		
         if($path_key =~ /$route_key/){
         	$chemin = $route;
+        	$chemin->{$_} = $headers->{$_} for (keys%$headers);
         	$chemin->{'the_key'} = $route_key;
         	$chemin->{'_uri'} = $uri;
         	$chemin->{'_query_string'} = $query_string;
+        	$chemin->{'_given_file'} = $given_file;
         	print Dumper('----route key path----',$route_key,$path,$chemin);
         }
     }
@@ -531,7 +592,12 @@ sub sendOk
     $response = "HTTP/1.1 200 \"OK\"\r\n";
     #En-tete de reponse :
     $response .= "Content-type: $mime\r\n";
-    my $taille = -s $path;
+    my $taille;
+    if ($path_is_str){
+    	$taille = length($path);
+    }else{
+    	$taille = -s $path;
+    }
     $response .= "Content-Length: $taille\r\n";
     $response .= "Connection: close\r\n";
     $response .= "\r\n";
@@ -759,7 +825,21 @@ sub writeFile
 
 sub add_headers{
     my($headers,$lines) = @_;
+    my $doing_content = 0;
     for my $line (@$lines){
+    	#jbdebug
+    	print Dumper ("---- add headers line $line -----");
+    	if ('' eq $line){
+    		$doing_content = 1;
+    		if (not $headers->{'_content_x'}){
+    			$headers->{'_content_x'} = '';
+    		}
+    		next;
+    	}
+    	if ($doing_content){
+    		$headers->{'_content_x'} .= $line;
+    		next;
+    	}
         my ($key, $value) = $line =~ /([^:]+)[:]\s+(.+)$/;
         if ($key and $value) {
             $value =~ s/\r\n/NNLL/g;
@@ -768,4 +848,20 @@ sub add_headers{
     }
 }
 
+sub genUUID {
+    my $uuid;
+    my @set = ('a'..'z','A'..'Z',0..9);
+    my $num = $#set;
+
+    $uuid .= $set[rand($num)] for 1..4;
+    $uuid .= '-';
+    for (1..3) {
+        $uuid .= $set[rand($num)] for 1..2;
+        $uuid .= '-';
+    }
+
+    $uuid .= $set[rand($num)] for 1..4;
+
+    return $uuid;
+}
 
